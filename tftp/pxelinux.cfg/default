@@ -1,0 +1,11 @@
+DEFAULT menu.c32
+PROMPT 0
+TIMEOUT 55
+
+MENU TITLE LAN Boot Menu
+	LABEL local
+	MENU LABEL Boot from Harddisk
+	MENU DEFAULT
+	LOCALBOOT 0
+
+INCLUDE install/menu
