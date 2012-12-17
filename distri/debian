@@ -1,0 +1,59 @@
+#!/bin/bash
+
+dbhttpserver="http://ftp.de.debian.org/debian/dists/"
+dbinfofile="Release"
+db32="main/installer-i386/current/images/netboot/debian-installer/i386/"
+db64="main/installer-amd64/current/images/netboot/debian-installer/amd64/"
+
+source functions
+
+limit=$1
+for dist in stable testing unstable ; do
+	let limit=limit-1
+	if [ $limit -lt 0 ] ; then
+		exit
+	fi
+	infof=`curl -s "$dbhttpserver/$dist/$dbinfofile"`
+	codename=`echo "$infof" | grep "Codename: " | sed -e 's/Codename: //'`
+	name="Debian `capitalize_first $codename` ($dist)"
+	echo "$name ..." >&2
+	# Here comes the download and menugen stuff
+	echo "
+	# START $dist
+	menu begin $dist
+	  menu title $name
+	  label dbmenu
+		menu label Back..
+		menu exit
+	"
+
+	if [ "$provide_i386" == "1" ] ; then
+		mkdir -p $pxe_inst/debian/$dist/i386
+		httpget "$dbhttpserver/$dist/$db32/linux" -o $pxe_inst/debian/$dist/i386/linux
+		httpget "$dbhttpserver/$dist/$db32/initrd.gz" -o $pxe_inst/debian/$dist/i386/initrd.gz
+		echo "
+		  LABEL db32
+			MENU LABEL Start 32 Bit Installation
+			KERNEL $install_subdir/debian/$dist/i386/linux
+			APPEND vga=normal initrd=$install_subdir/debian/$dist/i386/initrd.gz
+
+		"
+	fi
+
+	mkdir -p $pxe_inst/debian/$dist/amd64
+	httpget "$dbhttpserver/$dist/$db64/linux" -o $pxe_inst/debian/$dist/amd64/linux
+	httpget "$dbhttpserver/$dist/$db64/initrd.gz" -o $pxe_inst/debian/$dist/amd64/initrd.gz
+	echo "
+	  LABEL db64
+		MENU LABEL Start 64 Bit Installation
+		KERNEL $install_subdir/debian/$dist/amd64/linux
+		APPEND vga=normal initrd=$install_subdir/debian/$dist/amd64/initrd.gz
+
+	"
+
+	echo "
+	menu end
+	# END $dist
+	"
+	echo >&2
+done

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+arhttpserver="http://ftp.uni-erlangen.de/mirrors/archlinux/iso/archboot/latest/boot/"
+arftpserver="ftp://ftp.uni-erlangen.de/mirrors/archlinux/iso/archboot/"
+
+source functions
+
+abstable=`curl -s "$arftpserver" | grep -e "^l" -e "latest" | awk '{print $NF}'`
+
+echo "# START archlinux"
+if [ "$provide_i386" == "1" ] ; then
+	mkdir -p $pxe_inst/archlinux/i386
+	httpget "$arhttpserver/vmlinuz_i686" -o $pxe_inst/archlinux/i386/vmlinuz
+	httpget "$arhttpserver/initramfs_i686.img" -o $pxe_inst/archlinux/i386/initrd.img
+	echo "
+	LABEL ar32
+		MENU LABEL Start 32 Bit Installation ($abstable)
+		KERNEL $install_subdir/archlinux/i386/vmlinuz
+		APPEND initrd=$install_subdir/archlinux/i386/initrd.img rootdelay=10
+
+	"
+fi
+
+mkdir -p $pxe_inst/archlinux/amd64
+httpget "$arhttpserver/vmlinuz_x86_64" -o $pxe_inst/archlinux/amd64/vm64
+httpget "$arhttpserver/initramfs_x86_64.img" -o $pxe_inst/archlinux/amd64/initrd64.img
+echo "
+LABEL ar64
+	MENU LABEL Start 64 Bit Installation ($abstable)
+	KERNEL $install_subdir/archlinux/amd64/vm64
+	APPEND initrd=$install_subdir/archlinux/amd64/initrd64.img rootdelay=10
+
+"
+
+echo "# END archlinux"

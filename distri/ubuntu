@@ -1,0 +1,64 @@
+#!/bin/bash
+
+ubftpserver="ftp://archive.ubuntu.com/ubuntu/dists/"
+ubhttpserver="http://archive.ubuntu.com/ubuntu/dists/"
+ubrlist="ftp://vesta.informatik.rwth-aachen.de/pub/Linux/ubuntu/releases/"
+ubinfofile="Release"
+ub32="main/installer-i386/current/images/netboot/ubuntu-installer/i386/"
+ub64="main/installer-amd64/current/images/netboot/ubuntu-installer/amd64/"
+
+source functions
+
+limit=$1
+ubstable=`curl -s "$ubrlist" | grep -v -e "releases" -e "hardy" | grep "^l" | awk '{print $NF}' | tail -n1`
+ubdistlist=`curl -ls "$ubftpserver" | grep -v -e '-backports' -e '-proposed' -e '-security' -e '-updates' | grep -A100 "$ubstable"  | head -n $1`
+for dist in $ubdistlist ; do
+	let limit=limit-1
+	if [ $limit -lt 0 ] ; then
+		exit
+	fi
+	name=`curl -s "$ubhttpserver/$dist/$ubinfofile" | grep "Description: " | sed -e 's/Description: //'`
+	if [ "$dist" == "$ubstable" ] ; then
+		name="$name (stable)"
+	fi
+	echo "$name ..." >&2
+	# Here comes the download and menugen stuff
+	echo "
+	# START $dist
+	menu begin $dist
+	  menu title $name
+	  label dbmenu
+		menu label Back..
+		menu exit
+	"
+
+	if [ "$provide_i386" == "1" ] ; then
+		mkdir -p $pxe_inst/ubuntu/$dist/i386
+		httpget "$ubhttpserver/$dist/$ub32/linux" -o $pxe_inst/ubuntu/$dist/i386/linux
+		httpget "$ubhttpserver/$dist/$ub32/initrd.gz" -o $pxe_inst/ubuntu/$dist/i386/initrd.gz
+		echo "
+		  LABEL ub32
+			MENU LABEL Start 32 Bit Installation
+			KERNEL $install_subdir/ubuntu/$dist/i386/linux
+			APPEND vga=normal initrd=$install_subdir/ubuntu/$dist/i386/initrd.gz
+
+		"
+	fi
+
+	mkdir -p $pxe_inst/ubuntu/$dist/amd64
+	httpget "$ubhttpserver/$dist/$ub64/linux" -o $pxe_inst/ubuntu/$dist/amd64/linux
+	httpget "$ubhttpserver/$dist/$ub64/initrd.gz" -o $pxe_inst/ubuntu/$dist/amd64/initrd.gz
+	echo "
+	  LABEL ub64
+		MENU LABEL Start 64 Bit Installation
+		KERNEL $install_subdir/ubuntu/$dist/amd64/linux
+		APPEND vga=normal initrd=$install_subdir/ubuntu/$dist/amd64/initrd.gz
+
+	"
+
+	echo "
+	menu end
+	# END $dist
+	"
+	echo >&2
+done
