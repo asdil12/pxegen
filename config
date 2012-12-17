@@ -1,0 +1,13 @@
+#!/bin/bash
+
+pxe_dir="/tmp/test"
+install_subdir="install"
+
+provide_i386=1
+
+distributions=(debian ubuntu archlinux)
+
+declare -A version_limit
+version_limit[debian]=2
+version_limit[archlinux]=1
+version_limit[ubuntu]=2

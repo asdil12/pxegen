@@ -1,0 +1,15 @@
+#!/bin/bash
+
+function capitalize_first {
+	string0="$@"
+	firstchar=${string0:0:1}
+	string1=${string0:1}
+	FirstChar=`echo "$firstchar" | tr a-z A-Z`
+	echo "$FirstChar$string1"
+}
+
+function httpget {
+	echo -n "GET $1 ..." >&2
+	curl -s $@
+	echo " DONE" >&2
+}
